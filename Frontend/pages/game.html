@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Oráculo - Juego</title>
+    <link rel="stylesheet" href="/Frontend/styles/game.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="mystical-bg"></div>
+    
+    <a href="/Frontend/pages/menu.html" class="menu-button">Volver al Menú</a>
+    <div class="game-container">
+        <div class="stats-container">
+            <div class="timer">Tiempo: <span id="timer">00:00</span></div>
+            <div class="moves">Movimientos: <span id="moves">0</span></div>
+        </div>
+        <div class="game-board">
+            <div class="play-area">
+                <div class="card-slot" id="slot-1">
+                    <div class="position-number">1</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-2">
+                    <div class="position-number">2</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-3">
+                    <div class="position-number">3</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-4">
+                    <div class="position-number">4</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-12">
+                    <div class="position-number">12</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-11">
+                    <div class="position-number">11</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-10">
+                    <div class="position-number">10</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-13">
+                    <div class="position-number">13</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-5">
+                    <div class="position-number">5</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-6">
+                    <div class="position-number">6</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-7">
+                    <div class="position-number">7</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-9">
+                    <div class="position-number">9</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+                <div class="card-slot" id="slot-8">
+                    <div class="position-number">8</div>
+                    <div class="card-stack revealed"></div>
+                </div>
+            </div>
+        </div>
+        <div id="message"></div>
+        <div class="button-container">
+            <button id="auto-play-button" class="game-button">Juego Automático</button>
+            <button id="view-cards-button" class="game-button">Ver Cartas</button>
+        </div>
+        <button id="restart-button" class="restart-button" style="display: none;">Volver a jugar</button>
+    </div>
+    <div id="cards-popup" class="cards-popup">
+        <div class="popup-content">
+            <button class="close-popup" aria-label="Cerrar">×</button>
+            <div id="cards-fan" class="cards-fan"></div>
+        </div>
+    </div>
+    <script src="/Frontend/scripts/game.js"></script>
+</body>
+</html>
+
