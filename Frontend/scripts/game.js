@@ -46,7 +46,7 @@ class Game {
         this.restartButton = document.getElementById('restart-button');
         this.autoPlayButton = document.getElementById('auto-play-button');
         this.isAutoPlaying = false;
-        this.autoPlayDelay = 1200;
+        this.autoPlayDelay = 400; //cambio de Velocidad juego automático 1200
         this.viewCardsButton = document.getElementById('view-cards-button');
         this.cardsPopup = document.getElementById('cards-popup');
         this.cardsFan = document.getElementById('cards-fan');
@@ -72,7 +72,50 @@ class Game {
         this.destinyMessage = document.createElement('div');
         this.destinyMessage.className = 'destiny-message';
         document.body.appendChild(this.destinyMessage);
+
+        console.log('Constructor: Setting up ESC key listener');
+        this.handleEscKey = this.handleEscKey.bind(this);
+        document.addEventListener('keydown', this.handleEscKey);
+
     }
+
+    handleEscKey(event) {
+    console.log('Key pressed:', event.key);
+    if (event.key === 'Escape') {
+        console.log('ESC key detected');
+        const messageElement = document.getElementById('message');
+        console.log('Message element display state:', messageElement?.style.display);
+        if (messageElement && messageElement.style.display !== 'none') {
+            console.log('Attempting to close message via ESC');
+            this.closeMessage();
+        }
+    }
+}
+
+closeMessage() {
+    console.log('closeMessage function called');
+    const messageElement = document.getElementById('message');
+    console.log('Found message element:', messageElement);
+    
+    if (messageElement) {
+        console.log('Before closing - Display style:', messageElement.style.display);
+        messageElement.style.display = 'none';
+        messageElement.classList.remove('visible');
+        console.log('After closing - Display style:', messageElement.style.display);
+        
+        // Enable viewing cards after closing message
+        for (let i = 1; i <= 13; i++) {
+            const slot = document.querySelector(`#slot-${i}`);
+            console.log(`Updating slot ${i}:`, slot);
+            if (slot) {
+                slot.classList.remove('game-over');
+                slot.style.cursor = 'pointer';
+            }
+        }
+    } else {
+        console.log('Message element not found');
+    }
+}
 
     updateQuestionDisplay() {
         this.questionElement.textContent = this.question;
@@ -264,8 +307,8 @@ class Game {
     }
 
     async revealCard(position) {
+        if (this.isGameOver) return;
         if (this.isAnimating) return;
-    
         if (this.currentActivePosition !== position) {
             return;
         }
@@ -298,7 +341,7 @@ class Game {
     
             if (card.number !== position) {
                 await new Promise(resolve => setTimeout(resolve, 200));
-        
+    
                 const targetNumber = typeof card.number === 'number' ? card.number : this.convertCardNumberToInt(card.number);
                 const targetStack = this.stacks.get(targetNumber);
                 const targetElement = document.querySelector(`#slot-${targetNumber} .card-stack`);
@@ -311,7 +354,7 @@ class Game {
                 
                 const sourceRect = cardElement.getBoundingClientRect();
                 const targetRect = targetElement.getBoundingClientRect();
-        
+    
                 const currentSlot = document.querySelector(`#slot-${position}`);
                 const targetSlot = document.querySelector(`#slot-${targetNumber}`);
                 
@@ -319,22 +362,20 @@ class Game {
                 if (targetSlot) targetSlot.classList.add('active');
                 
                 this.currentActivePosition = targetNumber;
-        
-                // Calculate the path for the floating animation
+    
                 const deltaX = targetRect.left - sourceRect.left;
                 const deltaY = targetRect.top - sourceRect.top;
                 
                 cardElement.classList.add('card-moving');
                 cardElement.classList.add('in-transit');
-        
-                // Modified animation to maintain card orientation
+    
                 await new Promise(resolve => {
                     gsap.to(cardElement, {
                         y: -50,
                         duration: 0.3,
                         ease: "power2.out",
                         onStart: () => {
-                            cardElement.style.transform = 'rotateY(180deg)'; // Ensure proper initial rotation
+                            cardElement.style.transform = 'rotateY(180deg)';
                         },
                         onComplete: () => {
                             gsap.to(cardElement, {
@@ -353,6 +394,19 @@ class Game {
     
                 try {
                     targetStack.revealedCards.push(card);
+                    
+                    // Verificar si todas las K están en la posición 13
+                    if (targetNumber === 13) {
+                        const kingsInPosition = targetStack.revealedCards.filter(c => c.number === 13).length;
+                        if (kingsInPosition === 4) { // Si todas las K están en posición
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            this.stopTimer();
+                            this.showLossMessage();
+                            this.endGame();
+                            return;
+                        }
+                    }
+                    
                 } catch (error) {
                     console.error(`Error pushing card to target stack: ${error.message}`);
                     this.isAnimating = false;
@@ -371,6 +425,8 @@ class Game {
         this.isAnimating = false;
         this.checkVictory();
     }
+    
+ 
 
     toggleAutoPlay() {
         if (this.isAutoPlaying) {
@@ -549,9 +605,11 @@ class Game {
 
     checkVictory() {
         const stack13 = this.stacks.get(13);
-        const isStack13Complete = stack13.cards.length === 0 &&
-            stack13.revealedCards.every(card => card.number === 13);
-
+        
+        // Verificar si todas las K están en la posición 13
+        const kingsInPosition13 = stack13.revealedCards.filter(card => card.number === 13).length;
+        const isStack13Complete = stack13.cards.length === 0 && kingsInPosition13 === 4;
+    
         let otherStacksComplete = true;
         for (let i = 1; i <= 12; i++) {
             const stack = this.stacks.get(i);
@@ -561,32 +619,55 @@ class Game {
                 break;
             }
         }
-
-        if (isStack13Complete && !otherStacksComplete) {
-            this.stopTimer();
-            this.showLossMessage();
-            return;
-        }
-
+    
         if (otherStacksComplete && !isStack13Complete) {
             this.stopTimer();
             this.showVictoryMessage();
+            this.endGame();
+            return;
+        }
+    
+        // Si todas las K están en posición 13, es derrota
+        if (isStack13Complete) {
+            this.stopTimer();
+            this.showLossMessage();
+            this.endGame();
             return;
         }
     }
-
+    
+    endGame() {
+        this.isGameOver = true;
+        this.autoPlayButton.style.display = 'none';
+        this.viewCardsButton.style.cssText = 'display: block; margin: 0 auto;';
+        
+        // Instead of disabling pointer-events completely, we'll add a class
+        for (let i = 1; i <= 13; i++) {
+            const slot = document.querySelector(`#slot-${i}`);
+            slot.classList.add('game-over');
+        }
+    }
+    
     showVictoryMessage() {
+        console.log('Showing victory message');
         const messageElement = document.getElementById('message');
         if (!messageElement) {
             console.error('Elemento de mensaje no encontrado');
             return;
         }
         const finalTime = this.timerElement.textContent;
-        messageElement.textContent = `¡Has ganado!\n\nTiempo: ${finalTime}\nMovimientos: ${this.moves}\n\nEl Oráculo ha determinado que tu deseo SE CUMPLIRÁ.`;
+        messageElement.innerHTML = `
+            <div class="message-content">
+                <button type="button" class="close-message" aria-label="Cerrar">&times;</button>
+                <p>¡Has ganado!</p>
+                <p>Tiempo: ${finalTime}</p>
+                <p>Movimientos: ${this.moves}</p>
+                <p>El Oráculo ha determinado que tu deseo SE CUMPLIRÁ.</p>
+            </div>
+        `;
         messageElement.style.display = 'block';
         messageElement.classList.add('visible');
         messageElement.style.backgroundColor = 'rgba(0,100,0,0.85)';
-        document.querySelector('.game-board').classList.add('victory');
         
         // Create buttons container
         const buttonsContainer = document.createElement('div');
@@ -615,25 +696,47 @@ class Game {
         buttonsContainer.appendChild(tryAgainButton);
         
         // Add buttons container after message
-        messageElement.appendChild(document.createElement('br'));
-        messageElement.appendChild(buttonsContainer);
+        messageElement.querySelector('.message-content').appendChild(buttonsContainer);
         
         this.restartButton.style.display = 'none';
         this.stopAutoPlay();
+    
+        // Add event listener for close button
+        const closeButton = messageElement.querySelector('.close-message');
+        console.log('Close button found:', closeButton);
+        if (closeButton) {
+            console.log('Adding click listener to close button');
+            closeButton.addEventListener('click', (e) => {
+                console.log('Close button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.closeMessage();
+            });
+        }
     }
-
+    
     showLossMessage() {
+        console.log('Showing loss message');
         const messageElement = document.getElementById('message');
         if (!messageElement) {
             console.error('Elemento de mensaje no encontrado');
             return;
         }
         const finalTime = this.timerElement.textContent;
-        messageElement.textContent = `¡Has perdido!\n\nTiempo: ${finalTime}\nMovimientos: ${this.moves}\n\nEl Oráculo ha determinado que tu deseo NO SE CUMPLIRÁ.`;
-        messageElement.style.display = 'block';
+        messageElement.innerHTML = `
+            <div class="message-content">
+                <button type="button" class="close-message" aria-label="Cerrar">&times;</button>
+                <p>¡Has perdido!</p>
+                <p>Tiempo: ${finalTime}</p>
+                <p>Movimientos: ${this.moves}</p>
+                <p>El Oráculo ha determinado que tu deseo NO SE CUMPLIRÁ.</p>
+            </div>
+        `;
+        messageElement.style.display = 'flex';  // Cambiado de 'block' a 'flex'
         messageElement.classList.add('visible');
         messageElement.style.backgroundColor = 'rgba(200,0,0,0.85)';
-        document.querySelector('.game-board').classList.add('loss');
+
+        console.log('Message element after setup:', messageElement.outerHTML);
         
         // Create buttons container
         const buttonsContainer = document.createElement('div');
@@ -662,11 +765,27 @@ class Game {
         buttonsContainer.appendChild(tryAgainButton);
         
         // Add buttons container after message
-        messageElement.appendChild(document.createElement('br'));
-        messageElement.appendChild(buttonsContainer);
+        messageElement.querySelector('.message-content').appendChild(buttonsContainer);
         
         this.restartButton.style.display = 'none';
         this.stopAutoPlay();
+    
+        // Add event listener for close button
+        const closeButton = messageElement.querySelector('.close-message');
+        console.log('Close button found:', closeButton);
+        if (closeButton) {
+        console.log('Adding click listener to close button');
+        closeButton.addEventListener('click', (e) => {
+            console.log('Close button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            this.closeMessage();
+        });
+    }
+}
+
+    destroy() {
+        document.removeEventListener('keydown', this.handleEscKey);
     }
 
     setupResizeHandler() {
